@@ -19,6 +19,7 @@ Pacman agents (in searchAgents.py).
 
 import util
 
+
 class SearchProblem:
     """
     This class outlines the structure of a search problem, but doesn't implement
@@ -70,7 +71,8 @@ def tinyMazeSearch(problem):
     from game import Directions
     s = Directions.SOUTH
     w = Directions.WEST
-    return  [s, s, w, s, w, w, s, w]
+    return [s, s, w, s, w, w, s, w]
+
 
 def depthFirstSearch(problem: SearchProblem):
     """
@@ -87,17 +89,108 @@ def depthFirstSearch(problem: SearchProblem):
     print("Start's successors:", problem.getSuccessors(problem.getStartState()))
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    stack = util.Stack()
+    visited = []
+
+    if problem.isGoalState(problem.getStartState()):
+        return []
+
+    stack.push((problem.getStartState(), []))
+
+    while True:
+        if stack.isEmpty():
+            return []
+
+        xy, path = stack.pop()
+        visited.append(xy)
+
+        if problem.isGoalState(xy):
+            return path
+
+        children = problem.getSuccessors(xy)
+        if children is not None:
+            for child_info in children:
+                if child_info[0] not in visited:
+                    virtual_path = path + [child_info[1]]
+                    stack.push((child_info[0], virtual_path))
+
 
 def breadthFirstSearch(problem: SearchProblem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    queue = util.Queue()
+    visited = []
+
+    if problem.isGoalState(problem.getStartState()):
+        return []
+
+    queue.push((problem.getStartState(), []))
+
+    while True:
+        if queue.isEmpty():
+            return []
+
+        xy, path = queue.pop()
+        visited.append(xy)
+
+        if problem.isGoalState(xy):
+            return path
+
+        children = problem.getSuccessors(xy)
+        if children is not None:
+            # for state in queue.list:
+            # print(state)
+            added_items = (state[0] for state in queue.list)
+            for child_info in children:
+                if child_info[0] not in visited and child_info[0] not in added_items:
+                    virtual_path = path + [child_info[1]]
+                    queue.push((child_info[0], virtual_path))
+
 
 def uniformCostSearch(problem: SearchProblem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    pq = util.PriorityQueue()
+    visited = []
+
+    if problem.isGoalState(problem.getStartState()):
+        return []
+
+    pq.push((problem.getStartState(), []), 0)
+
+    while True:
+        if pq.isEmpty():
+            return []
+
+        xy, path = pq.pop()
+        visited.append(xy)
+
+        if problem.isGoalState(xy):
+            return path
+
+        children = problem.getSuccessors(xy)
+        if children is not None:
+            for child_info in children:
+                # heap state: (priority, self.count, item)
+                added_items = [state[2][0] for state in pq.heap]
+
+                # not exists in PQ, purely add
+                if child_info[0] not in visited and child_info[0] not in added_items:
+                    virtual_path = path + [child_info[1]]
+                    priority = problem.getCostOfActions(virtual_path)
+                    pq.push((child_info[0], virtual_path), priority)
+
+                # exits in PQ, may update priority
+                elif child_info[0] not in visited and child_info[0] in added_items:
+                    for state in pq.heap:
+                        if state[2][0] == child_info[0]:
+                            old_priority = problem.getCostOfActions(state[2][1])
+                            virtual_path = path + [child_info[1]]
+                            priority = problem.getCostOfActions(virtual_path)
+                            if priority < old_priority:
+                                pq.update((child_info[0], virtual_path), priority)
+                                break
+
 
 def nullHeuristic(state, problem=None):
     """
@@ -106,10 +199,53 @@ def nullHeuristic(state, problem=None):
     """
     return 0
 
+
 def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    pq = util.PriorityQueue()
+    visited = []
+
+    if problem.isGoalState(problem.getStartState()):
+        return []
+
+    pq.push((problem.getStartState(), []), 0)
+
+    while True:
+        if pq.isEmpty():
+            return []
+
+        xy, path = pq.pop()
+        visited.append(xy)
+
+        if problem.isGoalState(xy):
+            return path
+
+        children = problem.getSuccessors(xy)
+        if children is not None:
+            for child_info in children:
+                # heap state: (priority, self.count, item)
+                added_items = [state[2][0] for state in pq.heap]
+                heuristic_value = heuristic(child_info[0], problem)
+
+                # not exists in PQ, purely add
+                if child_info[0] not in visited and child_info[0] not in added_items:
+                    virtual_path = path + [child_info[1]]
+                    priority = problem.getCostOfActions(virtual_path)
+                    priority += heuristic_value
+                    pq.push((child_info[0], virtual_path), priority)
+
+                # exits in PQ, may update priority
+                elif child_info[0] not in visited and child_info[0] in added_items:
+                    for state in pq.heap:
+                        if state[2][0] == child_info[0]:
+                            old_priority = problem.getCostOfActions(state[2][1])
+                            virtual_path = path + [child_info[1]]
+                            priority = problem.getCostOfActions(virtual_path)
+                            priority += heuristic_value
+                            if priority < old_priority:
+                                pq.update((child_info[0], virtual_path), priority)
+                                break
 
 
 # Abbreviations
