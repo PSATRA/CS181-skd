@@ -71,11 +71,43 @@ class ReflexAgent(Agent):
         childGameState = currentGameState.getPacmanNextState(action)
         newPos = childGameState.getPacmanPosition()
         newFood = childGameState.getFood()
+        newGhost = childGameState.getGhostPositions()
         newGhostStates = childGameState.getGhostStates()
-        newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
         "*** YOUR CODE HERE ***"
-        return childGameState.getScore()
+        food = newFood.asList()
+        newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+        newFoodDistance = [manhattanDistance(f, newPos) for f in food]
+        newGhostDistance = [manhattanDistance(ghost, newPos) for ghost in newGhost]
+
+        score = 0
+
+        for foodDistance in newFoodDistance:
+            if foodDistance == 0:
+                score += 500
+            elif foodDistance <= 2:
+                score += 2
+            elif foodDistance <= 5:
+                score += 1
+
+        for i, ghostDistance in enumerate(newGhostDistance):
+            if ghostDistance == 0:
+                if newScaredTimes[i] > 0:
+                    score += 500
+                elif newScaredTimes[i] == 0:
+                    score -= 10000
+            elif ghostDistance <= 2:
+                if newScaredTimes[i] > 0:
+                    score += 2
+                elif newScaredTimes[i] == 0:
+                    score -= 5000
+            elif ghostDistance <= 5:
+                if newScaredTimes[i] > 0:
+                    score += 1
+                elif newScaredTimes[i] == 0:
+                    score -= 2
+
+        return childGameState.getScore() + score
 
 def scoreEvaluationFunction(currentGameState: GameState):
     """
