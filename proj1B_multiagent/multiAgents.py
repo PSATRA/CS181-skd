@@ -218,7 +218,54 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        def minimax(gameState, depth, agent, a, b):
+            state = []
+
+            if self.depth == depth or (not gameState.getLegalActions(agent)):
+                return [self.evaluationFunction(gameState), None]
+
+            if agent == gameState.getNumAgents() - 1:
+                depth += 1
+                newAgent = 0
+            else:
+                newAgent = agent + 1
+
+            for action in gameState.getLegalActions(agent):
+                # initial state of a node (agent)
+                if not state:
+                    newState = minimax(gameState.getNextState(agent, action), depth, newAgent, a, b)
+                    state.append(newState[0])
+                    state.append(action)
+                    if agent == 0:
+                        a = max(state[0], a)
+                    else:
+                        b = min(state[0], b)
+
+                else:
+                    if a > b:
+                        return state
+
+                    oldBestScore = state[0]
+                    newState = minimax(gameState.getNextState(agent, action), depth, newAgent, a, b)
+                    newBestScore = newState[0]
+
+                    # if pacman
+                    if agent == 0:
+                        if oldBestScore < newBestScore:
+                            state[0] = newBestScore
+                            state[1] = action
+                            a = max(state[0], a)
+
+                    # if ghost
+                    if agent > 0:
+                        if oldBestScore > newBestScore:
+                            state[0] = newBestScore
+                            state[1] = action
+                            b = min(state[0], b)
+
+            return state
+
+        return minimax(gameState, 0, 0, float("-inf"), float("inf"))[1]
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
@@ -233,7 +280,47 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         legal moves.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        def minimax(gameState, depth, agent):
+            state = []
+
+            if self.depth == depth or (not gameState.getLegalActions(agent)):
+                return [self.evaluationFunction(gameState), None]
+
+            if agent == gameState.getNumAgents() - 1:
+                depth += 1
+                newAgent = 0
+            else:
+                newAgent = agent + 1
+
+            for action in gameState.getLegalActions(agent):
+                newState = minimax(gameState.getNextState(agent, action), depth, newAgent)
+
+                # initial state of a node (agent)
+                if not state:
+                    if agent == 0:
+                        state.append(newState[0])
+                    else:
+                        state.append(newState[0] / len(gameState.getLegalActions(agent)))
+                    state.append(action)
+
+                else:
+                    oldBestScore = state[0]
+                    newBestScore = newState[0]
+
+                    # if pacman
+                    if agent == 0:
+                        if oldBestScore < newBestScore:
+                            state[0] = newBestScore
+                            state[1] = action
+
+                    # if ghost
+                    if agent > 0:
+                        state[0] += newState[0] / len(gameState.getLegalActions(agent))
+                        state[1] = action
+
+            return state
+
+        return minimax(gameState, 0, 0)[1]
 
 def betterEvaluationFunction(currentGameState: GameState):
     """
@@ -243,7 +330,49 @@ def betterEvaluationFunction(currentGameState: GameState):
     DESCRIPTION: <write something here so we know what you did>
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    childGameState = currentGameState
+    newPos = childGameState.getPacmanPosition()
+    newFood = childGameState.getFood()
+    newGhost = childGameState.getGhostPositions()
+    newGhostStates = childGameState.getGhostStates()
+
+    "*** YOUR CODE HERE ***"
+    food = newFood.asList()
+    newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+    newFoodDistance = [manhattanDistance(f, newPos) for f in food]
+    newGhostDistance = [manhattanDistance(ghost, newPos) for ghost in newGhost]
+
+    score = 0
+
+    for foodDistance in newFoodDistance:
+        if foodDistance == 0:
+            score += 500
+        elif foodDistance <= 2:
+            score += 2
+        elif foodDistance <= 5:
+            score += 1
+
+    for i, ghostDistance in enumerate(newGhostDistance):
+        if ghostDistance == 0:
+            if newScaredTimes[i] > 0:
+                score += 500
+            elif newScaredTimes[i] == 0:
+                score -= 10000
+        elif ghostDistance <= 2:
+            if newScaredTimes[i] > 0:
+                score += 2
+            elif newScaredTimes[i] == 0:
+                score -= 5000
+        elif ghostDistance <= 5:
+            if newScaredTimes[i] > 0:
+                score += 2
+            elif newScaredTimes[i] == 0:
+                score -= 2
+        elif ghostDistance <= 10:
+            if newScaredTimes[i] > 0:
+                score += 1
+
+    return childGameState.getScore() + 2 * score
 
 # Abbreviation
 better = betterEvaluationFunction
