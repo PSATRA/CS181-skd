@@ -383,7 +383,7 @@ def positionLogicPlan(problem) -> List:
 
         # Is there a satisfying assignment for the variables given the knowledge base so far?
         goal = PropSymbolExpr(pacman_str, xg, yg, time=t)
-        model = findModel(conjoin(KB) & goal)
+        model = findModel(conjoin([goal] + KB))
 
         if model:
             return extractActionSequence(model, actions)
@@ -434,11 +434,10 @@ def foodLogicPlan(problem) -> List:
         # Add to KB: Initial knowledge: Pacman's initial location at timestep 0
         KB.append(exactlyOne([PropSymbolExpr(pacman_str, x, y, time=t) for x, y in non_wall_coords]))
 
-        # Initialize Food[x,y]_t variables
+        # Is there a satisfying assignment for the variables given the knowledge base so far?
         goal = [~PropSymbolExpr(food_str, x, y, time=t) for x, y in food]
+        model = findModel(conjoin(goal + KB))
 
-        # goal assertion
-        model = findModel(conjoin(KB) & goal)
         if model:
             return extractActionSequence(model, actions)
 
@@ -459,7 +458,7 @@ def foodLogicPlan(problem) -> List:
             # eaten
             KB.append((pacman_t0 & food_t0) >> ~food_t1)
             # not eaten
-            KB.append((pacman_t0 & ~food_t0) >> food_t1)
+            KB.append((~pacman_t0 & food_t0) >> food_t1)
 
 #______________________________________________________________________________
 # QUESTION 6
