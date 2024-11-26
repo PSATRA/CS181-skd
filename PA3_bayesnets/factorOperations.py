@@ -12,7 +12,7 @@
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
-from typing import List
+from typing import List, Set
 from bayesNet import Factor
 import operator as op
 import util
@@ -103,7 +103,22 @@ def joinFactors(factors: List[Factor]):
 
 
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    conditioned = set()
+    unconditioned = set()
+    for factor in factors:
+        unconditioned.update(factor.unconditionedVariables())
+    for factor in factors:
+        for var in factor.conditionedVariables():
+            if var not in unconditioned:
+                conditioned.add(var)
+
+    newFactor = Factor(unconditioned, conditioned, list(factors)[0].variableDomainsDict())
+    for dist in newFactor.getAllPossibleAssignmentDicts():
+        new_prob = 1
+        for factor in factors:
+            new_prob *= factor.getProbability(dist)
+            newFactor.setProbability(dist, new_prob)
+    return newFactor
     "*** END YOUR CODE HERE ***"
 
 
@@ -153,7 +168,15 @@ def eliminateWithCallTracking(callTrackingList=None):
                     "unconditionedVariables: " + str(factor.unconditionedVariables()))
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        unconditioned: Set = factor.unconditionedVariables()
+        unconditioned.remove(eliminationVariable)
+        newFactor = Factor(unconditioned, factor.conditionedVariables(), factor.variableDomainsDict())
+        for dist in factor.getAllPossibleAssignmentDicts():
+            new_prob = factor.getProbability(dist)
+            dist.pop(eliminationVariable)
+            new_prob += newFactor.getProbability(dist)
+            newFactor.setProbability(dist, new_prob)
+        return newFactor
         "*** END YOUR CODE HERE ***"
 
     return eliminate
@@ -209,6 +232,23 @@ def normalize(factor: Factor):
                             str(factor))
 
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    unconditioned = set()
+    conditioned = set()
+    for var, domain in factor.variableDomainsDict().items():
+        is_unconditioned = len(domain) > 1 and var in factor.unconditionedVariables()
+        is_conditioned = len(domain) == 1 and (var in factor.unconditionedVariables() or var in factor.conditionedVariables())
+        if is_unconditioned:
+            unconditioned.add(var)
+        elif is_conditioned:
+            conditioned.add(var)
+
+    newFactor = Factor(unconditioned, conditioned, factor.variableDomainsDict())
+    sum_prob = 0
+    for dist in factor.getAllPossibleAssignmentDicts():
+        sum_prob += factor.getProbability(dist)
+    for dist in factor.getAllPossibleAssignmentDicts():
+        new_prob = factor.getProbability(dist) / sum_prob
+        newFactor.setProbability(dist, new_prob)
+    return newFactor
     "*** END YOUR CODE HERE ***"
 
