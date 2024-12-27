@@ -62,6 +62,14 @@ class ValueIterationAgent(ValueEstimationAgent):
     def runValueIteration(self):
         # Write value iteration code here
         "*** YOUR CODE HERE ***"
+        for _ in range(self.iterations):
+            value_temp:dict = util.Counter()
+            for state in self.mdp.getStates():
+                action = self.getAction(state)
+                if action is not None:
+                    value_temp[state] = self.getQValue(state, action)
+            for state in value_temp:
+                self.values[state] = value_temp[state]
 
 
     def getValue(self, state):
@@ -77,7 +85,10 @@ class ValueIterationAgent(ValueEstimationAgent):
           value function stored in self.values.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        qValue = 0
+        for nextState, prob in self.mdp.getTransitionStatesAndProbs(state, action):
+            qValue += prob * (self.mdp.getReward(state, action, nextState) + self.discount * self.getValue(nextState))
+        return qValue
 
     def computeActionFromValues(self, state):
         """
@@ -89,7 +100,14 @@ class ValueIterationAgent(ValueEstimationAgent):
           terminal state, you should return None.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        maxQValue = float("-inf")
+        bestAction = None
+        for action in self.mdp.getPossibleActions(state):
+            qValue = self.getQValue(state, action)
+            if qValue > maxQValue:
+                maxQValue = qValue
+                bestAction = action
+        return bestAction
 
     def getPolicy(self, state):
         return self.computeActionFromValues(state)
@@ -130,6 +148,12 @@ class AsynchronousValueIterationAgent(ValueIterationAgent):
 
     def runValueIteration(self):
         "*** YOUR CODE HERE ***"
+        states = self.mdp.getStates()
+        for i in range(self.iterations):
+            state = states[i % len(states)]
+            action = self.getAction(state)
+            if not self.mdp.isTerminal(state):
+                self.values[state] = self.getQValue(state, action)
 
 class PrioritizedSweepingValueIterationAgent(AsynchronousValueIterationAgent):
     """
@@ -150,4 +174,36 @@ class PrioritizedSweepingValueIterationAgent(AsynchronousValueIterationAgent):
 
     def runValueIteration(self):
         "*** YOUR CODE HERE ***"
+        # Compute predecessors of all states.
+        predecessors:dict = {}
+        for state in self.mdp.getStates():
+            for action in self.mdp.getPossibleActions(state):
+                for nextState, prob in self.mdp.getTransitionStatesAndProbs(state, action):
+                    if prob > 0:
+                        if nextState not in predecessors:
+                            predecessors[nextState]:set = set()
+                        predecessors[nextState].add(state)
+
+        # Initialize an empty priority queue.
+        pq:util.PriorityQueue = util.PriorityQueue()
+
+        # For each non-terminal state, ...
+        for state in self.mdp.getStates():
+            if not self.mdp.isTerminal(state):
+                diff = abs(self.values[state] - max([self.computeQValueFromValues(state, action)
+                                                     for action in self.mdp.getPossibleActions(state)]))
+                pq.push(state, -diff)
+
+        # Run each iteration:
+        for _ in range(self.iterations):
+            if pq.isEmpty():
+                break
+            state_popped = pq.pop()
+            self.values[state_popped] = max([self.computeQValueFromValues(state_popped, action)
+                                             for action in self.mdp.getPossibleActions(state_popped)])
+            for predecessor in predecessors[state_popped]:
+                diff = abs(self.values[predecessor] - max([self.computeQValueFromValues(predecessor, action)
+                                                           for action in self.mdp.getPossibleActions(predecessor)]))
+                if diff > self.theta:
+                    pq.update(predecessor, -diff)
 
