@@ -279,7 +279,7 @@ class LanguageIDModel(object):
         have a batch of 8 three-letter words where the last word is "cat", then
         xs[1] will be a node that contains a 1 at position (7, 0). Here the
         index 7 reflects the fact that "cat" is the last word in the batch, and
-        the index 0 reflects the fact that the letter "a" is the inital (0th)
+        the index 0 reflects the fact that the letter "a" is the initial (0th)
         letter of our combined alphabet for this task.
 
         Your model should use a Recurrent Neural Network to summarize the list
