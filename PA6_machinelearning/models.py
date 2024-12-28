@@ -252,7 +252,7 @@ class LanguageIDModel(object):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
         self.lr = 1e-1
-        self.lr_decay = 0.8
+        self.lr_decay = 0.9
         self.lr_minimum = 1e-3
 
         self.batch_size = 8
@@ -302,8 +302,8 @@ class LanguageIDModel(object):
             x = nn.Linear(x, self.w1)
             x = nn.ReLU(x)
 
-            x = nn.Linear(x, self.w2)
-            x = nn.ReLU(x)
+            h = nn.Linear(h, self.w2)
+            h = nn.ReLU(h)
 
             h = nn.Add(x, h)
 
