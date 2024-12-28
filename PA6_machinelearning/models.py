@@ -27,6 +27,7 @@ class PerceptronModel(object):
         Returns: a node containing a single number (the score)
         """
         "*** YOUR CODE HERE ***"
+        return nn.DotProduct(self.w, x)
 
     def get_prediction(self, x):
         """
@@ -35,12 +36,23 @@ class PerceptronModel(object):
         Returns: 1 or -1
         """
         "*** YOUR CODE HERE ***"
+        node_value = nn.as_scalar(self.run(x))
+        return 1 if node_value >= 0 else -1
 
     def train(self, dataset):
         """
         Train the perceptron until convergence.
         """
         "*** YOUR CODE HERE ***"
+        while True:
+            converged = True
+            for x, y in dataset.iterate_once(1):
+                prediction = self.get_prediction(x)
+                if prediction != nn.as_scalar(y):
+                    converged = False
+                    self.w.update(x, nn.as_scalar(y))
+            if converged:
+                return
 
 class RegressionModel(object):
     """
@@ -51,6 +63,21 @@ class RegressionModel(object):
     def __init__(self):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
+        self.lr = 1e-2
+        self.batch_size = 8
+
+        self.input_size = 1
+        self.hidden_1_size = 128
+        self.hidden_2_size = 64
+        self.output_size = 1
+
+        self.w1 = nn.Parameter(self.input_size, self.hidden_1_size)
+        self.w2 = nn.Parameter(self.hidden_1_size, self.hidden_2_size)
+        self.w3 = nn.Parameter(self.hidden_2_size, self.output_size)
+
+        self.b1 = nn.Parameter(1, self.hidden_1_size)
+        self.b2 = nn.Parameter(1, self.hidden_2_size)
+        self.b3 = nn.Parameter(1, self.output_size)
 
     def run(self, x):
         """
@@ -62,6 +89,17 @@ class RegressionModel(object):
             A node with shape (batch_size x 1) containing predicted y-values
         """
         "*** YOUR CODE HERE ***"
+        x = nn.Linear(x, self.w1)
+        x = nn.AddBias(x, self.b1)
+        x = nn.ReLU(x)
+
+        x = nn.Linear(x, self.w2)
+        x = nn.AddBias(x, self.b2)
+        x = nn.ReLU(x)
+
+        x = nn.Linear(x, self.w3)
+        x = nn.AddBias(x, self.b3)  # output layer
+        return x
 
     def get_loss(self, x, y):
         """
@@ -74,12 +112,26 @@ class RegressionModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
+        y_hat = self.run(x)
+        return nn.SquareLoss(y_hat, y)
 
     def train(self, dataset):
         """
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
+        while True:
+            for x, y in dataset.iterate_once(self.batch_size):
+                loss = self.get_loss(x, y)
+                gradient = nn.gradients(loss, [self.w1, self.w2, self.w3, self.b1, self.b2, self.b3])
+                self.w1.update(gradient[0], -self.lr)
+                self.w2.update(gradient[1], -self.lr)
+                self.w3.update(gradient[2], -self.lr)
+                self.b1.update(gradient[3], -self.lr)
+                self.b2.update(gradient[4], -self.lr)
+                self.b3.update(gradient[5], -self.lr)
+                if nn.as_scalar(loss) < 0.001:
+                    return
 
 class DigitClassificationModel(object):
     """
@@ -98,6 +150,24 @@ class DigitClassificationModel(object):
     def __init__(self):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
+        self.lr = 5e-2
+        self.lr_decay = 0.6
+        self.lr_minimum = 1e-3
+
+        self.batch_size = 8
+
+        self.input_size = 784
+        self.hidden_1_size = 128
+        self.hidden_2_size = 64
+        self.output_size = 10
+
+        self.w1 = nn.Parameter(self.input_size, self.hidden_1_size)
+        self.w2 = nn.Parameter(self.hidden_1_size, self.hidden_2_size)
+        self.w3 = nn.Parameter(self.hidden_2_size, self.output_size)
+
+        self.b1 = nn.Parameter(1, self.hidden_1_size)
+        self.b2 = nn.Parameter(1, self.hidden_2_size)
+        self.b3 = nn.Parameter(1, self.output_size)
 
     def run(self, x):
         """
@@ -114,6 +184,17 @@ class DigitClassificationModel(object):
                 (also called logits)
         """
         "*** YOUR CODE HERE ***"
+        x = nn.Linear(x, self.w1)
+        x = nn.AddBias(x, self.b1)
+        x = nn.ReLU(x)
+
+        x = nn.Linear(x, self.w2)
+        x = nn.AddBias(x, self.b2)
+        x = nn.ReLU(x)
+
+        x = nn.Linear(x, self.w3)
+        x = nn.AddBias(x, self.b3)  # output layer
+        return x
 
     def get_loss(self, x, y):
         """
@@ -129,12 +210,28 @@ class DigitClassificationModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
+        y_hat = self.run(x)
+        return nn.SoftmaxLoss(y_hat, y)
 
     def train(self, dataset):
         """
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
+        while True:
+            for x, y in dataset.iterate_once(self.batch_size):
+                loss = self.get_loss(x, y)
+                gradient = nn.gradients(loss, [self.w1, self.w2, self.w3, self.b1, self.b2, self.b3])
+                self.w1.update(gradient[0], -self.lr)
+                self.w2.update(gradient[1], -self.lr)
+                self.w3.update(gradient[2], -self.lr)
+                self.b1.update(gradient[3], -self.lr)
+                self.b2.update(gradient[4], -self.lr)
+                self.b3.update(gradient[5], -self.lr)
+
+            self.lr = max(self.lr_minimum, self.lr * self.lr_decay)
+            if dataset.get_validation_accuracy() >= 0.975:
+                return
 
 class LanguageIDModel(object):
     """
@@ -154,6 +251,20 @@ class LanguageIDModel(object):
 
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
+        self.lr = 1e-1
+        self.lr_decay = 0.8
+        self.lr_minimum = 1e-3
+
+        self.batch_size = 8
+
+        self.input_size = self.num_chars
+        self.hidden_size = 512
+        self.output_size = 5
+
+        self.w1 = nn.Parameter(self.input_size, self.hidden_size)
+        self.w2 = nn.Parameter(self.hidden_size, self.hidden_size)
+        self.w3 = nn.Parameter(self.hidden_size, self.output_size)
+
 
     def run(self, xs):
         """
@@ -185,6 +296,19 @@ class LanguageIDModel(object):
                 (also called logits)
         """
         "*** YOUR CODE HERE ***"
+        x = nn.Linear(xs[0], self.w1)
+        h = nn.ReLU(x)
+        for x in xs[1:]:
+            x = nn.Linear(x, self.w1)
+            x = nn.ReLU(x)
+
+            x = nn.Linear(x, self.w2)
+            x = nn.ReLU(x)
+
+            h = nn.Add(x, h)
+
+        f = nn.Linear(h, self.w3)   # output layer
+        return f
 
     def get_loss(self, xs, y):
         """
@@ -201,12 +325,25 @@ class LanguageIDModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
+        y_hat = self.run(xs)
+        return nn.SoftmaxLoss(y_hat, y)
 
     def train(self, dataset):
         """
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
+        while True:
+            for x, y in dataset.iterate_once(self.batch_size):
+                loss = self.get_loss(x, y)
+                gradient = nn.gradients(loss, [self.w1, self.w2, self.w3])
+                self.w1.update(gradient[0], -self.lr)
+                self.w2.update(gradient[1], -self.lr)
+                self.w3.update(gradient[2], -self.lr)
+
+            self.lr = max(self.lr_minimum, self.lr * self.lr_decay)
+            if dataset.get_validation_accuracy() >= 0.85:
+                return
 
 class Attention(object):
     def __init__(self, layer_size, block_size):
@@ -248,3 +385,14 @@ class Attention(object):
         B, T, C = input.shape
         
         """YOUR CODE HERE"""
+        # Compute Query (Q), Key (K), and Value (V) matrices
+        Q = np.matmul(input, self.q_weight)
+        K = np.matmul(input, self.k_weight)
+        V = np.matmul(input, self.v_weight)
+
+        attention_scores = np.matmul(Q, K.transpose(0, 2, 1)) / np.sqrt(self.layer_size)
+        causal_mask = self.mask
+        attention_scores = np.where(causal_mask, attention_scores, float('-inf'))
+        attention_weights = nn.softmax(attention_scores, -1)
+        output = np.matmul(attention_weights, V)
+        return output
