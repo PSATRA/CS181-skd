@@ -1,0 +1,559 @@
+\documentclass{article}
+
+% Use the NeurIPS style
+\usepackage[preprint]{neurips_2023}
+
+% Additional packages
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+\title{Reinforcement Learning for Simplified Poker: A Study on Adaptive Strategies in Leduc Hold’em}
+
+\author{
+  % David S.~Hippocampus\thanks{Use footnote for providing further information
+  %   about author (webpage, alternative address)---\emph{not} for acknowledging
+  %   funding agencies.} \\
+  % Department of Computer Science\\
+  % Cranberry-Lemon University\\
+  % Pittsburgh, PA 15213 \\
+  % \texttt{hippo@cs.cranberry-lemon.edu} \\
+  % % examples of more authors
+  % \And
+  Li Ge \\
+  2022533011 \\
+  \texttt{lige2022@} \\
+  \And
+  Long Yuxuan\\
+  2022533034 \\
+  \texttt{longyx2022@} \\
+  \And
+  Zeng Yihe\\
+  2022533161  \\
+  \texttt{zengyh2022@} \\
+  % \And
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+  % \And
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+}
+
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+    This paper explores the application of reinforcement learning in a multi-agent environment, focusing on decision-making strategies within the game of Leduc Hold’em poker. The project involves the design and implementation of a flexible environment class to facilitate agent interaction, state tracking, and modular support for various learning algorithms. We develop and evaluate multiple reinforcement learning agents, including Q-Learning, model-based methods, and Bayesian approaches, to address the dynamic and competitive nature of the game. Through adversarial training, agents iteratively refine their policies by learning from each other, enhancing their decision-making capabilities. Experimental results demonstrate the effectiveness of these methods in achieving strategic adaptability and highlight the potential of reinforcement learning to solve complex multi-agent problems. This study provides valuable insights for advancing research in multi-agent systems, game theory, and artificial intelligence.
+\end{abstract}
+
+\section{Introduction}
+Poker is a classic example of an imperfect information game, requiring players to make decisions under uncertainty while anticipating their opponents’ strategies. This complexity makes poker a valuable domain for testing artificial intelligence (AI) techniques, especially in reinforcement learning and multi-agent systems. Among various poker variants, \textbf{Leduc Hold’em} stands out for its simplified rules and strategic depth, offering a manageable environment for studying decision-making under incomplete information.
+
+In this project, we explores the development of AI agents for Leduc Hold’em, focusing on their ability to learn and adapt to dynamic environments. We introduce four types of agents: Random Agent, Model-Based Agent, Q-Learning Agent, and Bayesian Agent. Each agent follows a distinct decision-making paradigm.
+
+\section{Background and Problem Formulation}
+\subsection{Original Problem}
+Leduc Hold'em is a simplified poker game often used in artificial intelligence and game theory research due to its strategic depth and manageable complexity. The game is designed to simulate the core elements of poker, such as betting strategies, hidden information, and decision-making under uncertainty.
+
+The game uses a small deck of six cards, consisting of three unique ranks (e.g., Jack, Queen, King), with two cards for each rank. Two players participate in the game, and the objective is to maximize the number of chips won by making optimal decisions. Each player is dealt one private card, which is hidden from their opponent, and one public card is revealed during the game to influence decision-making.
+
+Leduc Hold'em consists of two rounds:
+\begin{itemize}
+    \item \textbf{First Round:} Each player is dealt one private card, which only they can see. Players then take turns deciding whether to bet, call, or fold based on their private card and their assumptions about the opponent's possible card.
+    \item \textbf{Second Round:} A single public card is revealed. Players again take turns deciding their actions based on their private card, the public card, and the opponent's previous actions. This round concludes with a showdown if no player folds.
+\end{itemize}
+
+The winner of the game is determined by comparing the ranks of the cards:
+\begin{itemize}
+    \item If one player folds during any round, the other player automatically wins the pot (the total chips bet by both players).
+    \item If both players reach the end of the second round without folding, the player with the highest combination of private and public cards wins the pot.
+\end{itemize}
+
+One of the key challenges in Leduc Hold'em is its \textbf{partial information}. Players can only see their private card and the public card but have no knowledge of the opponent's private card. This makes it essential to make decisions based on probabilities and predictions about the opponent's strategy. Additionally, players must balance between \textbf{exploitation}—capitalizing on strong hands—and \textbf{bluffing} to mislead the opponent and force favorable outcomes.
+
+Overall, Leduc Hold'em captures the essence of decision-making in poker, including uncertainty, risk management, and dynamic strategy adjustment. These features make it an ideal testbed for reinforcement learning and multi-agent systems.
+
+\subsection{Problem Formulation}
+This project focuses on developing an artificial intelligence agent for a simplified version of Texas Hold'em poker, known as \textbf{Leduc Hold'em}. Leduc Hold'em is a widely studied variant in the field of game theory and artificial intelligence due to its manageable complexity and strategic depth, which make it suitable for research on decision-making under uncertainty and multi-agent interactions.
+
+In Leduc Hold'em, the game is played using a small deck of six cards, with two suits and three ranks, such as King, Queen, and Jack. twictwic This small deck size significantly reduces the state space of the game while maintaining the core challenges of poker, including incomplete information and probabilistic reasoning.
+
+The game typically involves two players, making it ideal for head-to-head competitions. Each player starts with an equal number of chips and competes to maximize their winnings through strategic betting and decision-making. The game proceeds in multiple stages, beginning with the \textit{pre-flop phase}. During this phase, each player is dealt one private card aka hole hand, which remains hidden from the opponent. This hidden information creates the primary uncertainty that players must account for in their strategies.
+
+After the private cards are dealt, the game moves to the \textit{flop phase}, where a single public card is revealed. This card is shared by both players and can be combined with their private cards to form a hand. The public card introduces new information into the game, allowing players to adjust their strategies based on the potential hand combinations available to both themselves and their opponent.
+
+The betting rounds are a critical component of Leduc Hold'em. There are two betting rounds: one after the private cards are dealt and another after the public card is revealed. In each betting round, players can take one of five possible actions:
+\begin{itemize}
+    \item \textbf{Bet}: Place a wager based on the perceived strength of their hand.
+    \item \textbf{Call}: Match the opponent's bet to stay in the game.
+    \item \textbf{Raise}: Increase the amount of the current bet to exert pressure on the opponent.
+    \item \textbf{Fold}: Forfeit the current hand and concede the pot to the opponent.
+    \item \textbf{Check}: Pass the action to the next player without placing a bet, while still maintaining the right to call, raise, or fold later in the round
+\end{itemize}
+Players must balance between aggressive betting, which can force the opponent to fold, and conservative strategies, which reduce the risk of losing chips. The limited betting rounds and fixed chip amounts further constrain the decision-making process, requiring precise calculations and well-timed actions.
+
+If neither player folds during the betting rounds, the game proceeds to the \textit{showdown phase}, where both players reveal their private cards. The winner is determined based on the hand strength, with higher-ranked combinations taking precedence. In Leduc Hold'em, a pair (one private card and the public card of the same rank) beats a high card, and ties occur as far as two player share the same private card. When both players have a high-card hand, they compare their cards from highest to lowest. For example, if the public card is a K, a player with a Q in their hole cards beats a player with a J in theirs.
+
+The simplified structure of Leduc Hold'em retains the essential strategic elements of Texas Hold'em while significantly reducing the complexity of the game. The reduced card space makes it easier for players to estimate their opponent's possible hands, yet the hidden private cards maintain the challenges of decision-making under incomplete information. This combination of simplicity and depth makes Leduc Hold'em an excellent platform for studying reinforcement learning and game-theoretic strategies.
+
+In this project, we leverage the unique properties of Leduc Hold'em to develop and evaluate artificial intelligence agents. By focusing on this simplified rule set, we aim to explore the effectiveness of various reinforcement learning methods, including value-based, model-based, and probabilistic approaches, in handling dynamic decision-making and partial information environments.
+
+
+\section{Random Agent}
+\subsection{Overview}
+The Random Agent is the simplest form of artificial intelligence in this project. It interacts with the Leduc Hold’em environment by selecting one action at random from the set of legal actions provided by the game state. The agent does not evaluate the game state, opponent strategy, or future consequences of its actions. Its primary purpose is to:
+\begin{itemize}
+    \item Serve as a baseline to compare the performance of other, more complex agents.
+    \item Test the robustness and correctness of the game environment.
+    \item Provide a controlled and non-adaptive opponent during training and evaluation of other agents.
+\end{itemize}
+
+\subsection{Algorithm}
+The Random Agent operates by adhering to a simple algorithm:
+\begin{enumerate}
+    \item Obtain the current game state, which includes the set of legal actions.
+    \item Randomly select an action from the legal actions using a uniform probability distribution.
+    \item Execute the selected action in the environment.
+\end{enumerate}
+
+This straightforward algorithm ensures that the agent always selects a valid action while introducing no strategic bias.
+
+\subsection{Implementation}
+The implementation of the Random Agent is straightforward and leverages Python's random sampling functionality. The following pseudocode illustrates the agent's decision-making process:
+
+\begin{algorithm}[H]
+\caption{Random Agent Decision Process}
+\begin{algorithmic}[1]
+\STATE \textbf{Input:} Current game state $S$
+\STATE Extract the set of legal actions $A \leftarrow S.\text{legal\_actions}$
+\STATE Randomly select an action $a \sim \text{Uniform}(A)$
+\STATE \textbf{Return:} Selected action $a$
+\end{algorithmic}
+\end{algorithm}
+
+
+
+
+\section{Model-Based Agent}
+Unlike model-free methods such as Q-Learning, which directly learn a value function or policy from experience, a Model-Based Agent \emph{explicitly} constructs and maintains an internal model of the environment’s dynamics. Specifically, it learns or estimates:
+\begin{itemize}
+\item A \textbf{transition model}, capturing how the environment state evolves in response to actions.
+\item A \textbf{reward model}, indicating the immediate reward for each state-action pair.
+\end{itemize}
+By integrating these models, the agent can \emph{simulate} future outcomes of different actions and thereby plan ahead to select actions that maximize long-term return.
+
+\subsection{Core Principles of Model-Based Reinforcement Learning}
+In model-based RL, the agent maintains:
+\begin{itemize}
+\item \textbf{Transition model:} $T(s, a, s’)$, representing the probability of moving from state $s$ to state $s’$ when taking action $a$. 
+\item \textbf{Reward model:} $R(s, a)$, use the chip we bet in the current round to represent the immediate reward.
+\end{itemize}
+Once these models are learned from data, the agent can \textbf{plan} by simulating different actions and predicting future returns.
+
+\subsection{Algorithm}
+The Model-Based Agent in Leduc Hold’em typically proceeds as follows:
+
+\begin{enumerate}
+\item \textbf{Initialize}: the transition model $T$ and reward model $R$ to empty or uniform distributions.
+\item \textbf{Collect experience}: Run entire episodes in the Leduc environment. After each action:
+\begin{itemize}
+\item Observe the current state $s$, chosen action $a$, immediate reward $r$, and the resulting next state $s’$.
+\item \textbf{Update the model}:
+Store counts in $T$ and use the chip we bet in this round to update $R$.
+\end{itemize}
+\item \textbf{Estimate transition probabilities and rewards}: After collecting enough data,
+\[
+P(s{\prime} \mid s, a) \approx \frac{T(s, a, s{\prime})}{\sum_{s{\prime}{\prime}} T(s, a, s{\prime}{\prime})},
+\quad
+\hat{R}(s, a) \approx \text{mean}\,\bigl(R(s, a)\bigr).
+\]
+\begin{enumerate}
+\item \textbf{Plan or simulate}: When choosing an action in state $s$, the agent proceeds as follows:
+\begin{enumerate}
+\item Use the transition model derived from past experiences.
+\item Use the learned average reward estimate $\hat{R}(s, a)$ to approximate the immediate return of each action $a$.
+\item Apply a softmax operation to the average rewards $\hat{R}(s, a)$ for all legal actions to obtain a probability distribution (if multi-step lookahead is not required, one can skip more complex simulation or search).
+\item
+\begin{itemize}
+\item \textbf{Training mode}: Randomly sample an action from the softmax distribution.
+\item \textbf{Evaluation mode}: Select the action with the highest average reward, i.e., $\arg\max_a \hat{R}(s,a)$.
+\end{itemize}
+\end{enumerate}
+\item \textbf{Repeat}: Continue collecting gameplay data to further refine (or fine-tune) the transition and reward models, thereby improving strategy quality over time.
+\end{enumerate}
+\end{enumerate}
+\begin{algorithm}[H]
+\caption{Model-Based Agent Training Algorithm}
+\begin{algorithmic}[1]
+\STATE Initialize $\mathrm{Model}$: $T(s,a,s’) \leftarrow 0$, $R(s,a) \leftarrow []$ for all $(s,a,s’)$.
+\FOR{each training episode}
+\STATE Reset environment, get initial state $s$.
+\WHILE{episode not terminated}
+\STATE Choose action $a$.
+\STATE Execute $a$ in $s$, observe $r, s’$.
+\STATE Update the counts: $T(s,a,s’) \leftarrow T(s,a,s’) + 1$.
+\STATE Append $r$ into $R(s,a)$. \quad // store reward sample
+\STATE $s \leftarrow s’$.
+\ENDWHILE
+\ENDFOR
+\STATE \textbf{Compute} approximate distributions:
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Implementation Details}
+\begin{enumerate}
+    \item \textbf{State Representation and Action Selection}
+
+    Each state is obtained by converting the observations returned by the RLCard environment (such as the player's private cards, public cards, betting rounds, and chip information) into a tuple to enable hashing. Each action is represented by an integer index (e.g., \texttt{fold}, \texttt{call}, \texttt{raise}). In each training round, the agent gathers trajectory data from the environment, namely the complete record of each episode (including every state, action, reward, and the subsequent state). Using these trajectory data, we can update our model.
+
+    \item \textbf{Updating the Transition and Reward Models}
+
+    After each game ends, the agent iterates over all state-action-reward-next-state tuples for that game and updates its model based on the actual rewards observed. We maintain two dictionaries in the updating process:
+    \begin{itemize}
+        \item \texttt{transition\_model}: Records the transition frequencies for each state-action pair.
+        \item \texttt{reward\_model}: Records the reward history for each state-action pair.
+    \end{itemize}
+
+    The updating procedure is carried out by the \texttt{\_update\_model} method, which traverses each state-action pair and updates the model based on the reward information.
+
+    \item \textbf{Decision Making and Strategy Selection}
+
+    When making decisions, the agent uses its current state-action-reward model and adopts a Softmax strategy to choose actions. This approach assigns a probability to each action based on its expected reward (calculated as the running mean of historical rewards). The agent then randomly selects an action from the set of legal actions according to these probabilities.
+
+    During training, the agent iteratively optimizes its decision-making strategy by simulating multiple games. In each decision step, it calculates the expected reward for each legal action and applies Softmax sampling, thereby ensuring adequate exploration.
+\end{enumerate}
+
+\subsection{Experimental Observations}
+We trained the Model-Based Agent for several thousand hands of Leduc Hold’em against various baseline opponents. While this approach can ultimately yield more stable planning than a purely random strategy once the transition and reward models converge, the agent’s performance heavily depends on the types of opponents it trains against, which in turn makes its overall learning process more volatile. In other words, the style and strategy of the training opponents substantially shape the agent’s behavior, causing training outcomes to vary across different matchups. Moreover, because the environment is partially observable (the agent cannot see the opponent’s cards) and the game tree can branch significantly, deeper lookahead or more sophisticated opponent belief modeling can further improve performance. However, before the agent’s models become sufficiently accurate, training can be relatively unstable, as it must accumulate enough experience to reliably predict transitions and rewards. 
+
+Overall, the Model-Based Agent demonstrates how learning explicit models of the environment allows for multi-step reasoning and adaptable strategies in Leduc Hold’em, distinguishing it from simpler reactive methods.
+
+\section{Q-learning Agent}
+The Q-Learning Agent applies model-free reinforcement learning to develop an effective decision-making strategy in the Leduc Hold’em environment. Unlike random agents, which select actions blindly, the Q-Learning Agent learns from interactions with the environment to optimize its policy over time. This is achieved by estimating the long-term reward for each state-action pair and using this knowledge to make informed decisions.
+
+\subsection{Core Principles of Q-Learning}
+
+Q-Learning is based on the concept of a Q-function, $Q(s, a)$, which represents the expected cumulative reward for taking action $a$ in state $s$ and following the optimal policy thereafter. The agent updates this Q-function iteratively during training using the Temporal Difference (TD) learning rule:
+
+\[
+Q(s, a) \leftarrow Q(s, a) + \alpha \cdot \left[ r + \gamma \cdot \max_{a'} Q(s', a') - Q(s, a) \right],
+\]
+
+where:
+\begin{itemize}
+    \item $\alpha$ is the learning rate, controlling how quickly the agent updates its estimates.
+    \item $\gamma$ is the discount factor, determining the importance of future rewards relative to immediate rewards.
+    \item $r$ is the reward received for performing action $a$ in state $s$.
+    \item $s'$ is the state reached after taking action $a$.
+\end{itemize}
+
+This equation balances the immediate reward with the estimated value of future actions, ensuring that the agent learns to prioritize long-term gains.
+
+\subsection{Algorithm}
+
+The Q-Learning Agent interacts with the environment in episodes, each consisting of multiple games. In each episode, it performs the following steps:
+
+1. Observe the current state $s$ and identify the set of legal actions.
+
+2. Select an action $a$ using the $\epsilon$-greedy policy:
+   \begin{itemize}
+       \item With probability $\epsilon$, choose a random action to explore the environment.
+       \item With probability $1 - \epsilon$, choose the action that maximizes $Q(s, a)$.
+   \end{itemize}
+   
+3. Execute the action $a$, observe the resulting state $s'$ and the reward $r$.
+
+4. Update the Q-value for the state-action pair $(s, a)$ using the TD rule.
+
+5. Repeat until the episode terminates.
+
+The training process consists of multiple episodes, during which the agent iteratively refines its Q-values. Once training is complete, the agent uses the learned Q-table to make decisions without further updates.
+
+\begin{algorithm}[H]
+\caption{Q-Learning Agent Training Algorithm}
+\begin{algorithmic}[1]
+\STATE Initialize Q-table $Q(s, a)$ to zero for all state-action pairs.
+\FOR{each training episode}
+    \STATE Initialize state $s$.
+    \WHILE{episode not terminated}
+        \STATE Select action $a$ using $\epsilon$-greedy policy.
+        \STATE Execute action $a$, observe reward $r$ and next state $s'$.
+        \STATE Update Q-value:
+        \[
+        Q(s, a) \leftarrow Q(s, a) + \alpha \cdot \left[ r + \gamma \cdot \max_{a'} Q(s', a') - Q(s, a) \right].
+        \]
+        \STATE Set $s \leftarrow s'$.
+    \ENDWHILE
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Implementation Details}
+
+In our implementation, the Q-Learning Agent uses a Q-table stored as a dictionary, where keys are state-action pairs and values are Q-values. The training is conducted in an environment with a fixed seed to ensure reproducibility. Hyperparameters such as the learning rate ($\alpha = 0.01$), discount factor ($\gamma = 0.8$), and exploration rate ($\epsilon = 0.1$) were chosen through experimentation to balance learning efficiency and stability.
+
+The agent alternates between training and evaluation phases. During training, it explores the environment extensively to gather diverse experiences. For evaluation, the agent uses a fixed policy derived from the Q-table and competes against baseline agents, such as the Random Agent and Rule-Based Agent. 
+
+\section{Rule Agent}
+
+The Rule Agent mimics human intuition by following predefined, simple rules to evaluate hand strength and make decisions in Leduc Hold’em. When humans play poker, they tend to maximize the pot size when holding strong hands and minimize losses when holding weak hands. Similarly, the Rule Agent uses straightforward heuristics based on experience and practice to decide its actions based on the private and public cards available in the current game state.
+
+The Rule Agent makes decisions solely based on the cards in hand and on the table without requiring any training. Before the public card is revealed (pre-flop), the agent chooses to \textbf{raise} if it holds a \textbf{King (K)}. Otherwise, it chooses \textbf{call} or \textbf{check} to gather more information about the game state. After the public card is revealed (post-flop), if the private card matches the public card, forming a pair, the agent chooses to \textbf{raise}. Otherwise, the Rule Agent evaluates its hand strength as a single card: if the private card is \textbf{King (K)}, it randomly decides between \textbf{call} and \textbf{check} (or \textbf{fold}) with equal probability; otherwise, it opts for \textbf{check} (or \textbf{fold}).
+
+\subsection{Decision Rules}
+
+The decision-making process of the Rule Agent can be divided into two phases:
+\begin{itemize}
+    \item \textbf{Pre-flop:} If the private card is \textbf{King (K)}, the agent selects \textbf{raise}. Otherwise, it chooses \textbf{call} if available; if not, it selects \textbf{check}.
+    \item \textbf{Post-flop:} 
+    \begin{itemize}
+        \item If the private card matches the public card, forming a pair, the agent selects \textbf{raise}.
+        \item Otherwise:
+        \begin{itemize}
+            \item If the private card is \textbf{King (K)}, the agent randomly decides between:
+            \begin{itemize}
+                \item \textbf{call} with a 50\% probability.
+                \item \textbf{check} (or \textbf{fold}) with a 50\% probability.
+            \end{itemize}
+            \item If the private card is not \textbf{King (K)}, the agent selects \textbf{check} (or \textbf{fold}).
+        \end{itemize}
+    \end{itemize}
+\end{itemize}
+
+\subsection{Algorithm}
+
+The following pseudocode summarizes the decision-making process of the Rule Agent:
+
+\begin{algorithm}[H]
+\caption{Rule Agent Decision-Making Process}
+\begin{algorithmic}[1]
+\STATE \textbf{Input:} Game state $S$ with private card $hand$, public card $public\_card$, legal actions $legal\_actions$.
+\STATE \textbf{Output:} Chosen action $action$.
+\IF{$public\_card$ is available}
+    \IF{$hand.rank == public\_card.rank$}
+        \STATE $action \gets \textbf{raise}$
+    \ELSE
+        \IF{$hand.rank == K$}
+            \STATE $rand \gets \text{random number in } [0, 1)$
+            \IF{$rand < 0.5$}
+                \STATE $action \gets \textbf{check}$
+            \ELSE
+                \STATE $action \gets \textbf{call}$
+            \ENDIF
+        \ELSE
+            \STATE $action \gets \textbf{check}$
+        \ENDIF
+    \ENDIF
+\ELSE
+    \IF{$hand.rank == K$}
+        \STATE $action \gets \textbf{raise}$
+    \ELSE
+        \IF{\textbf{call} is in $legal\_actions$}
+            \STATE $action \gets \textbf{call}$
+        \ELSE
+            \STATE $action \gets \textbf{check}$
+        \ENDIF
+    \ENDIF
+\ENDIF
+\RETURN $action$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Analysis}
+The rule agent operates on simple predefined rules without requiring any training. It uses the information available in the game state, such as the private hand and public cards, to select the next action. These rules are intuitive and align with basic human decision-making strategies in poker. Despite its simplicity, the Rule Agent demonstrates surprisingly effective performance in practice, making it a solid benchmark for evaluating other agents. The detailed results will be discussed in the experimental analysis section.
+
+The primary strength of the Rule Agent lies in its straightforward logic, which mirrors human intuition. It chooses aggressive actions like \textbf{raise} when holding strong hands, aiming to maximize the pot size. Conversely, it opts for conservative actions like \textbf{check} or \textbf{fold} when holding weaker hands, minimizing potential losses. This balance between aggression and caution enables the Rule Agent to function as a competitive opponent in Leduc Hold’em, despite the absence of any learning or adaptability.
+
+By following these predefined strategies, the Rule Agent highlights the importance of hand evaluation in poker while serving as a useful baseline for comparison against more complex agents. Its effectiveness in real-world scenarios will be analyzed further in subsequent sections through performance metrics and direct comparisons with learning-based agents.
+
+
+\section{Bayesian Agent}
+Bayes Agent is an intelligent agent based on Bayesian updating strategies, which utilizes probability and statistical methods to infer opponents’ behaviors and hand distributions in reinforcement learning environments. The core idea is to continuously update the opponent’s strategy model using their actions and prior knowledge (such as the distribution of their hands) to make optimal decisions for itself.
+
+In Texas Hold’em, the commonly used Game Theory Optimal (GTO) strategy aims to construct a balanced strategy that cannot be easily exploited by opponents. Bayesian Agent dynamically adjusts the estimation of the opponent’s hand and flexibly applies probabilistic models, enabling it to progressively approximate GTO strategies.
+
+“Unlike conventional GTO solvers, in the rules of Leduc Hold’em, due to its significantly smaller state space compared to the complexity of Texas Hold’em, Bayes Agent can perform online real-time calculations without relying on offline pre-computation like traditional GTO solvers. This feature further enhances the practicality and efficiency of Bayes Agent in simplified environments.”
+
+Compared to traditional fixed strategies or heuristic methods, Bayes Agent excels in handling incomplete information scenarios. Its core advantage lies in updating the opponent’s hand distribution through behavioral observation, combining this with expected value calculations. This allows the agent to make decisions that balance offensive and defensive strategies, thereby achieving a closer approximation to GTO equilibrium strategies.
+\subsection{Core Elements of Bayesian Agent}
+EV (Expected Value) is the core element of the Bayesian Agent. EV represents the expected payoff of the current action, calculated based on the player’s hole cards, public cards, and the range of the opponent’s hole cards.
+\[EV = \mathbb P(win) \times pot + \frac{\mathbb P(tie) \times pot}{2} - \mathbb P(loss) \times \text{chip-to-bet}\]
+which indicates that we only care about benefit in the current round no matter the chip we bet in former round.
+
+
+This approach allows the agent to adapt its actions depending on the game context, making its overall strategy more robust.  By dynamically recalculating EV throughout the game, the agent can execute a mixed-frequency strategy that integrates bluffing, value betting, and folding.By leveraging Bayesian updates and continuously refined EV estimates, the agent balances aggression and caution, ensuring a well-rounded decision-making process that aligns with Game Theory Optimal (GTO) principles.
+
+In a Bayesian agent, we assume that the opponent is also an experienced player who makes decisions based on optimal choices or a certain optimal strategy. Therefore, we can infer the opponent’s range of hole cards based on their actions. Using the information from our own hole cards and the public cards, we can establish a prior probability distribution for the opponent’s hole cards.
+
+When observing the opponent’s actions, we calculate their EV (expected value) under the current distribution of hole cards. By evaluating the EV and their chosen action, we determine the likelihood of the opponent taking that specific action. Finally, using Bayes’ theorem, we update the prior to derive the posterior probability distribution of the opponent’s hole cards. This process allows the Bayesian agent to dynamically adjust its understanding of the opponent’s strategy and make more informed decisions.
+\[
+P(H | A) = \frac{P(A | H) \cdot P(H)}{\sum_{H'} P(A | H') \cdot P(H')}
+\]
+Where:
+\begin{itemize}
+    \item \(P(H | A)\): The posterior probability of the opponent holding hand \(H\) after observing action \(A\).
+    \item \(P(H)\): The prior probability of the opponent holding hand \(H\).
+    \item \(P(A | H)\): The likelihood of the opponent choosing action \(A\) given they hold hand \(H\).
+    \item The denominator \(\sum_{H'} P(A | H') \cdot P(H')\): The normalization term, representing the total probability across all possible hands.
+\end{itemize}
+\subsection{Algorithm}
+\begin{algorithm}[H]
+\caption{Bayesian Agent Decision-Making Process}
+\begin{algorithmic}[1]
+\STATE \textbf{Input:} Game state $S$ with private card $hand$, public card $public\_card$, legal actions $legal\_actions$, opponent action history.
+\STATE \textbf{Output:} Chosen action $action$.
+\STATE \textbf{Initialize:} Prior hand distribution for opponent $P(H) = [P(J), P(Q), P(K)]$.
+\STATE \textbf{Update:} Calculate posterior distribution for opponent's hand based on observed action history using Bayes' Theorem.
+\STATE \textbf{Compute:} Compute expected value (EV) for each possible action based on $hand$, $public\_card$, and opponent's posterior hand distribution.
+\STATE \textbf{Choose:} Calculate action probabilities using softmax function on EV values.
+\STATE \textbf{Action Selection:}
+\IF{Opponent's action is observed}
+    \STATE Update opponent's hand distribution $P(H | A)$ using Bayes' Theorem based on the action $A$.
+\ENDIF
+\STATE \textbf{Select action:} Choose action $action \gets \text{sample from action probabilities}$.
+\RETURN $action$
+\end{algorithmic}
+\end{algorithm}
+\subsection{Analysis}
+
+The Bayesian Agent demonstrates exceptional decision-making capabilities in environments with incomplete information. By leveraging Bayesian inference, the agent dynamically updates its opponent's strategy model, enabling responsive decisions while reducing the risk of exploitation. Through iterative calculations of Expected Value (EV), the Bayesian Agent effectively integrates bluffing, value betting, and folding into a cohesive strategy, adapting to evolving game dynamics.
+
+Additionally, the Bayesian Agent infers opponents' hand distributions based on observed actions and employs probabilistic models to approximate Game Theory Optimal (GTO) strategies. This inference ability is particularly effective in games like Leduc Hold'em, which have smaller state spaces, allowing the agent to perform real-time online calculations and quickly adjust strategies, maintaining competitiveness in complex games.
+
+\subsubsection*{Comparison with Other Reinforcement Learning Algorithms}
+
+\paragraph{Compared to Model-Based Methods:}
+\begin{itemize}
+    \item Model-based methods rely on learning the environment's dynamics and reward functions to plan decisions, making them well-suited for deterministic environments.
+    \item In contrast, the Bayesian Agent focuses on observing and inferring opponent behavior, dynamically adjusting decisions without explicitly modeling the environment's dynamics, making it more robust in incomplete information games.
+\end{itemize}
+
+\paragraph{Compared to Q-Learning:}
+\begin{itemize}
+    \item Q-Learning updates the value of state-action pairs (Q-values) through trial-and-error exploration but struggles with high exploration costs in large state spaces or incomplete information environments.
+    \item The Bayesian Agent, leveraging probabilistic reasoning and prior knowledge, achieves efficient decision-making even under limited exploration by dynamically adjusting strategies.
+\end{itemize}
+
+\subsubsection*{Limitations}
+The current design of the Bayesian Agent focuses primarily on modeling opponent behavior within a single game, without considering their long-term strategy or playing style. This limitation may result in locally optimal decisions in the short term but fails to account for global strategies, impacting performance in multi-game scenarios.
+
+For instance, the Bayesian Agent cannot identify opponents' long-term tendencies, such as aggressive or conservative play styles, leading to potential missteps against different types of opponents. Future improvements could include extending the model to capture multi-game tendencies and learning long-term opponent behavior through repeated interactions, thereby enhancing performance in global gameplay scenarios.
+
+\subsubsection*{Conclusion}
+The Bayesian Agent strikes a balance between theoretical rigor and practical applicability. By integrating Bayesian inference and EV computation, the agent makes robust decisions in environments with incomplete information, progressively approximating GTO strategies.
+
+\paragraph{Key Advantages:}
+\begin{itemize}
+    \item Dynamically updates opponents' hand distributions for real-time precise decisions.
+    \item Combines probabilistic reasoning with EV computation, providing high adaptability.
+    \item Outperforms traditional algorithms (e.g., model-based methods and Q-Learning) in addressing incomplete information games.
+\end{itemize}
+
+Despite its limitations in modeling long-term strategies, the Bayesian Agent can further enhance its capabilities through improvements, making it a powerful tool for complex environments with incomplete information.
+\section{Experimental Results and Analysis}
+We use two distinct criteria to analyze and compare the performance of the models.
+
+\begin{enumerate}
+    \item \textbf{Match-Based Evaluation}: Inspired by the competition format in Texas Hold'em, we measure performance by recording the number of times each player wins 200 big blinds first across 10 matches.
+    \item \textbf{Profitability Assessment}: To evaluate profitability, we use the net number of big blinds won over 100 hands as a metric to assess the model's performance.
+\end{enumerate}
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{c|ccccc}
+     & \textbf{Random} & \textbf{Model-based} & \textbf{Q-learning} & \textbf{Rule-based} & \textbf{CFR} \\
+    \hline
+    \textbf{Random}  & -- & 0  & 0  & 0  & 0  \\
+    \textbf{Model-based}  & 10 & -- & 10 & 10 & 0  \\
+    \textbf{Q-learning}  & 10 & 0  & -- & 9  & 0  \\
+    \textbf{Rule-based} & 10 & 0  & 1  & -- & 10 \\
+    \textbf{CFR}  & 10 & 10 & 10 & 0  & -- \\
+    \end{tabular}
+    \caption{Pairwise results of five agents over 10 matches each. Entry \((i,j)\) denotes how many matches agent \(i\) won against agent \(j\).}
+    \label{tab:pairwise-results}
+    \end{table}
+\begin{table}[h]
+    \centering
+    \begin{tabular}{c|ccccc}
+     & \textbf{Random} & \textbf{Model-based} & \textbf{Q-learning} & \textbf{Rule-based} & \textbf{CFR} \\
+    \hline
+    \textbf{Random}  & -- & -62.25  &  -44.50 & -23.75  & -35.75  \\
+    \textbf{Model-based}  & 62.25 & -- & -26.00 & 14.00 & -21.00  \\
+    \textbf{Q-learning}  & 44.50 & 26.00  & -- & 33.50  & 6.00  \\
+    \textbf{Rule-based} & 23.75 & -14.00  & -33.50  & -- & 6.00 \\
+    \textbf{CFR}  & 35.75 & 21.00 & 0.50 & -6.00  & -- \\
+    \end{tabular}
+    \caption{Pairwise average results of five agents' rewards of 100 hands. Entry \((i,j)\) denotes how many rewards agent \(i\) won against agent \(j\).}
+    \label{tab:pairwise-results}
+    \end{table}
+    \textbf{Table 1: Pairwise Results Over 10 Matches}
+
+\begin{itemize}
+    \item \textit{Interpretation:} The table indicates how many matches each agent won against every other agent (with 10 matches in each pairing).
+    \begin{itemize}
+        \item \textbf{Random} lost all matches against every opponent.
+        \item \textbf{Model-based} achieved full victories over \textbf{Random} but lost all matches to \textbf{Q-learning}.
+        \item \textbf{Q-learning} also won all of its matches against \textbf{Random}, yet performed poorly against \textbf{Rule-based} and \textbf{Model-based}.
+        \item \textbf{Rule-based} won ten matches each against \textbf{Q-learning} and \textbf{CFR}, but lost to \textbf{Model-based}.
+        \item \textbf{CFR} secured full victories over \textbf{Random} and \textbf{Rule-based}, but had no wins against \textbf{Model-based} or \textbf{Q-learning}.
+    \end{itemize}
+\end{itemize}
+
+\textbf{Table 2: Pairwise Average Rewards Over 100 Hands}
+
+\begin{itemize}
+    \item \textit{Interpretation:} The table shows the average reward obtained by each agent after 100 hands against each opponent.
+    \begin{itemize}
+        \item \textbf{Random} receives negative rewards against all agents, indicating generally poor performance.
+        \item \textbf{Model-based} achieves high rewards against \textbf{Random} and \textbf{Q-learning}, but posts weaker results against \textbf{Rule-based} (14.00) and \textbf{CFR} (-21.00).
+        \item \textbf{Q-learning} gains positive returns when facing \textbf{Random} (44.50) and \textbf{Model-based} (26.00), but suffers substantial losses against \textbf{Rule-based} (-33.50) and only slightly positive outcomes against \textbf{CFR} (6.00).
+        \item \textbf{Rule-based} sees favorable results against \textbf{Random} (23.75), yet negative returns in matchups with \textbf{Model-based} and \textbf{Q-learning}.
+        \item \textbf{CFR} performs relatively well overall, posting positive averages against \textbf{Random} and \textbf{Q-learning}, while slightly negative against \textbf{Rule-based} (-6.00) and notably negative against \textbf{Model-based} (-21.00).
+    \end{itemize}
+\end{itemize}
+
+\textbf{Key Observations}
+
+\begin{itemize}
+    \item The \textbf{Model-based} agent performs strongly in many scenarios, particularly versus \textbf{Random} and \textbf{Q-learning}. However, it is less effective against \textbf{Rule-based} and \textbf{CFR}, suggesting it may require more targeted strategies for those specific opponents.
+    \item \textbf{Random} is the weakest agent, consistently producing negative returns against all others.
+    \item \textbf{Q-learning} exhibits decent performance in certain matchups (e.g., against \textbf{Random} and \textbf{Model-based}) but struggles significantly with \textbf{Rule-based} and \textbf{CFR}.
+    \item \textbf{Rule-based} manages good gains against \textbf{Random}, but suffers in encounters with more adaptive or learning-based agents.
+    \item \textbf{CFR} demonstrates relatively balanced outcomes and can compete strongly in several pairings. However, it still shows weaknesses against some specific agents (e.g., \textbf{Model-based}).
+\end{itemize}
+
+\section{Conclusion}
+n this project, we explored various reinforcement learning techniques and rule-based strategies within the context of Leduc Hold’em—a simplified poker game that preserves the essential dynamics of hidden information, betting, and bluffing. We introduced and investigated multiple agents, including a Random Agent, Model-Based Agent, Q-Learning Agent, Bayesian Agent, and a handcrafted Rule-Based Agent. Each agent exhibited distinct strengths in handling incomplete information and adapting to opponent behaviors:
+
+    \textbf{Random Agent}: served as a baseline with no strategic bias, illustrating the environment’s core functionality.
+
+    \textbf{Model-Based Agent} explicitly learned transition and reward models, showing the potential of planning and simulation but also requiring substantial interaction data to achieve stable performance.
+
+    \textbf{Q-Learning Agent} leveraged a value-based, model-free learning approach to iteratively refine its policy through temporal difference updates.
+
+    \textbf{Rule-Based Agent} provided a heuristic-driven strategy inspired by simple human poker logic, performing surprisingly well despite its lack of learning.
+
+    \textbf{Bayesian Agent} dynamically updated its beliefs regarding the opponent’s possible cards, integrating probabilistic reasoning for decision-making and demonstrating strong performance in uncertain scenarios.
+
+Experimental results demonstrated that agents employing more sophisticated inference or learning mechanisms tended to outperform simpler ones. However, each approach also highlighted trade-offs between complexity, convergence speed, and robustness in partially observable settings. Furthermore, outcomes depended heavily on the nature of opponents, underscoring the importance of diverse training experiences and robust adaptive strategies.
+
+Overall, this study underscores the value of Leduc Hold’em as a compelling environment for investigating multi-agent reinforcement learning, game theory, and decision-making under incomplete information. Future work may focus on integrating opponent modeling, extending multi-step lookahead, and combining multiple strategies (e.g., Bayesian updates with deep learning methods) to handle more complex or dynamic versions of poker and other multi-agent tasks.
+
+\section*{External Resources}
+https://github.com/datamllab/rlcard
+
+We utilized these external resources to build a gaming environment, which includes the game flow, the determination of victory or defeat, and the assessment of winning chips.
+
+\bibliography{bibfile}
+
+
+\end{document}
